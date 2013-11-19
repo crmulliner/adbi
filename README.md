@@ -74,16 +74,16 @@ adb push libs/armeabi/libexample.so /data/local/tmp/
 adb shell
 su
 cd /data/local/tmp
-# GET PID from com.android.phone
+(GET PID from com.android.phone)
 ./hijack -d -p PID -l /data/local/tmp/libexample.so
 cat adbi_example.log
 
-# output should look similar to:
-#
-#  started
-# hooking:   epoll_wait = 0x4004c378 ARM using 0x4a84a588
-# epoll_wait() called
-# epoll_wait() called
-# epoll_wait() called
-# removing hook for epoll_wait()
+output should look similar to:
+
+started
+hooking:   epoll_wait = 0x4004c378 ARM using 0x4a84a588
+epoll_wait() called
+epoll_wait() called
+epoll_wait() called
+removing hook for epoll_wait()
 
