@@ -45,18 +45,8 @@ cd hijack
 cd jni
 ndk-build
 cd ..
-adb push libs/armeabi/hijack 
-cd ..
-```
-
-= build the instrumentation base code =
-
-```
-cd instruments
-cd base
-cd jni
-ndk-build
-cd ..
+adb push libs/armeabi/hijack /data/local/tmp/
+adb shell chmod 755 /data/local/tmp/hijack
 cd ..
 ```
 
@@ -68,6 +58,7 @@ cd jni
 ndk-build
 cd ..
 adb push libs/armeabi/libexample.so /data/local/tmp/
+adb shell chmod 755 /data/local/tmp/libexample.so
 ```
 
 === How to Run ===
