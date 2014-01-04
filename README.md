@@ -42,7 +42,6 @@ Android NDK
 = build the hijack tool =
 ```
 cd hijack
-cd jni
 ndk-build
 cd ..
 adb push libs/armeabi/hijack /data/local/tmp/
@@ -54,7 +53,6 @@ cd ..
 
 ```
 cd example
-cd jni
 ndk-build
 cd ..
 adb push libs/armeabi/libexample.so /data/local/tmp/

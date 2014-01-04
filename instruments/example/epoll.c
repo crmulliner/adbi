@@ -60,7 +60,7 @@ extern int my_epoll_wait_arm(int epfd, struct epoll_event *events, int maxevents
  */
 static void my_log(char *msg)
 {
-	LOGI(msg)
+	LOGI("%s",msg);
 }
 
 int my_epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
@@ -85,7 +85,7 @@ void my_init(void)
 {
 	counter = 3;
 
-	LOGI("%s started\n", __FILE__)
+	LOGI("%s started\n", __FILE__);
  
 	set_logfunction(my_log);
 
