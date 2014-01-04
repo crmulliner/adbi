@@ -17,8 +17,8 @@ LOCAL_PATH := $(call my-dir)
 include $(CLEAR_VARS)
 
 LOCAL_MODULE    := libexample
-LOCAL_SRC_FILES := ../epoll.c  ../epoll_arm.c.arm
-LOCAL_LDLIBS    := -L./libs -ldl -ldvm -lbase
+LOCAL_SRC_FILES := ../epoll.c  ../epoll_arm.c.arm ../../base/util.c ../../base/hook.c ../../base/base.c 
+LOCAL_LDLIBS    := -L./libs -ldl -llog
 LOCAL_LDLIBS := -Wl,--start-group ../../base/obj/local/armeabi/libbase.a  -Wl,--end-group
 LOCAL_CFLAGS := -g
 

@@ -11,6 +11,7 @@
 
 #include <sys/types.h>
 #include <sys/epoll.h>
+#include <android/log.h>
 
 extern int my_epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);
 
