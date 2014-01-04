@@ -43,7 +43,6 @@ Android NDK
 ```
 cd hijack
 ndk-build
-cd ..
 adb push libs/armeabi/hijack /data/local/tmp/
 adb shell chmod 755 /data/local/tmp/hijack
 cd ..
@@ -54,7 +53,6 @@ cd ..
 ```
 cd example
 ndk-build
-cd ..
 adb push libs/armeabi/libexample.so /data/local/tmp/
 adb shell chmod 755 /data/local/tmp/libexample.so
 ```
@@ -67,7 +65,8 @@ su
 cd /data/local/tmp
 # GET PID from com.android.phone
 ./hijack -d -p PID -l /data/local/tmp/libexample.so
-cat adbi_example.log
+exit
+adb logcat (see log entries hook-epoll)
 ```
 
 output should look similar to:
