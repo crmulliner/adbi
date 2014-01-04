@@ -33,8 +33,8 @@
 #undef log
 #include <android/log.h>
 
-#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "hook-ioctl", __VA_ARGS__))
-#define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "hook-ioctl", __VA_ARGS__)) 
+#define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "hook-epoll", __VA_ARGS__))
+#define LOGE(...) ((void)__android_log_print(ANDROID_LOG_ERROR, "hook-epoll", __VA_ARGS__)) 
 #define log(...) \
         {FILE *fp = fopen("/data/local/tmp/adbi_example.log", "a+");\
         fprintf(fp, __VA_ARGS__);\
