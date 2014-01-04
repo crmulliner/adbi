@@ -48,11 +48,11 @@ int hook_direct(struct hook_t *h, unsigned int addr, void *hookf)
 {
 	int i;
 	
-	log("addr  = %x\n", addr)
-	log("hookf = %x\n", hookf)
+	log("addr  = %x\n", (unsigned int)addr)
+	log("hookf = %x\n", (unsigned int)hookf)
 
 	if ((addr % 4 == 0 && (unsigned int)hookf % 4 != 0) || (addr % 4 != 0 && (unsigned int)hookf % 4 == 0))
-		log("addr 0x%x and hook 0x%x\n don't match!\n", addr, hookf)
+		log("addr 0x%x and hook 0x%x\n don't match!\n", (unsigned int)addr, (unsigned int)hookf)
 	
 	//log("ARM\n")
 	h->thumb = 0;
@@ -81,11 +81,11 @@ int hook(struct hook_t *h, int pid, char *libname, char *funcname, void *hook_ar
 		return 0;
 	}
 	
-	log("hooking:   %s = 0x%x ", funcname, addr)
+	log("hooking:   %s = 0x%x ", funcname, (unsigned int)addr)
 	strncpy(h->name, funcname, sizeof(h->name)-1);
 
 	if (addr % 4 == 0) {
-		log("ARM using 0x%x\n", hook_arm)
+		log("ARM using 0x%x\n", (unsigned int)hook_arm)
 		h->thumb = 0;
 		h->patch = (unsigned int)hook_arm;
 		h->orig = addr;
@@ -99,9 +99,9 @@ int hook(struct hook_t *h, int pid, char *libname, char *funcname, void *hook_ar
 	}
 	else {
 		if ((unsigned long int)hook_thumb % 4 == 0)
-			log("warning hook is not thumb 0x%x\n", hook_thumb)
+			log("warning hook is not thumb 0x%x\n", (unsigned int)hook_thumb)
 		h->thumb = 1;
-		log("THUMB using 0x%x\n", hook_thumb)
+		log("THUMB using 0x%x\n", (unsigned int)hook_thumb)
 		h->patch = (unsigned int)hook_thumb;
 		h->orig = addr;	
 		h->jumpt[1] = 0xb4;
