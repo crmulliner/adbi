@@ -45,7 +45,7 @@ cd hijack
 cd jni
 ndk-build
 cd ..
-adb push libs/armeabi/hijack 
+adb push libs/armeabi/hijack /data/local/tmp/
 cd ..
 ```
 
