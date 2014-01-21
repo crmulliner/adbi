@@ -76,6 +76,7 @@ adb push libs/armeabi/libexample.so /data/local/tmp/
 adb shell
 su
 cd /data/local/tmp
+>/data/local/tmp/example.log
 # GET PID from com.android.phone
 ./hijack -d -p PID -l /data/local/tmp/libexample.so
 cat adbi_example.log
