@@ -514,7 +514,7 @@ write_mem(pid_t pid, unsigned long *buf, int nlong, unsigned long pos)
 	int i;
 
 	for (p = buf, i = 0; i < nlong; p++, i++)
-		if (0 > ptrace(PTRACE_POKETEXT, pid, pos+(i*4), *p))
+		if (0 > ptrace(PTRACE_POKETEXT, pid, (void *)(pos+(i*4)), (void *)*p))
 			return -1;
 	return 0;
 }
@@ -526,7 +526,7 @@ read_mem(pid_t pid, unsigned long *buf, int nlong, unsigned long pos)
 	int i;
 
 	for (p = buf, i = 0; i < nlong; p++, i++)
-		if ((*p = ptrace(PTRACE_PEEKTEXT, pid, pos+(i*4), *p)) < 0)
+		if ((*p = ptrace(PTRACE_PEEKTEXT, pid, (void *)(pos+(i*4)), (void *)*p)) < 0)
 			return -1;
 	return 0;
 }
@@ -666,7 +666,7 @@ int main(int argc, char *argv[])
 
 	void *ldl = dlopen("libdl.so", RTLD_LAZY);
 	if (ldl) {
-		dlopenaddr = dlsym(ldl, "dlopen");
+		dlopenaddr = (unsigned long)dlsym(ldl, "dlopen");
 		dlclose(ldl);
 	}
 	unsigned long int lkaddr;
@@ -719,7 +719,7 @@ int main(int argc, char *argv[])
 						printf("zygote -> %s\n", fname);
 
 					// detach from zygote
-					ptrace(PTRACE_DETACH, pid, 0, SIGCONT);
+					ptrace(PTRACE_DETACH, pid, 0, (void *)SIGCONT);
 
 					// now perform on new process
 					pid = child_pid;
@@ -871,7 +871,7 @@ int main(int argc, char *argv[])
 	
 	// detach and continue
 	ptrace(PTRACE_SETREGS, pid, 0, &regs);
-	ptrace(PTRACE_DETACH, pid, 0, SIGCONT);
+	ptrace(PTRACE_DETACH, pid, 0, (void *)SIGCONT);
 
 	if (debug)
 		printf("library injection completed!\n");
