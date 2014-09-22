@@ -56,7 +56,7 @@ extern int my_epoll_wait_arm(int epfd, struct epoll_event *events, int maxevents
  */
 static void my_log(char *msg)
 {
-	log(msg)
+	log("%s", msg)
 }
 
 int my_epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout)
