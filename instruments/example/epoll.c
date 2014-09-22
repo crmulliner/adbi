@@ -32,9 +32,9 @@
 #undef log
 
 #define log(...) \
-        {FILE *fp = fopen("/data/local/tmp/adbi_example.log", "a+");\
+        {FILE *fp = fopen("/data/local/tmp/adbi_example.log", "a+"); if (fp) {\
         fprintf(fp, __VA_ARGS__);\
-        fclose(fp);}
+        fclose(fp);}}
 
 
 // this file is going to be compiled into a thumb mode binary

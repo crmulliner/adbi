@@ -36,8 +36,10 @@ static char logfile[] = "/data/local/tmp/adbi.log";
 static void logmsgtofile(char *msg)
 {
 	int fp = open(logfile, O_WRONLY|O_APPEND);
-	write(fp, msg, strlen(msg));
-	close(fp);
+    if (fp != -1) {
+	    write(fp, msg, strlen(msg));
+	    close(fp);
+    }
 }
 
 static void logmsgtostdout(char *msg)
