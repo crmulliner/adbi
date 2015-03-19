@@ -105,7 +105,7 @@ int hook(struct hook_t *h, int pid, char *libname, char *funcname, void *hook_ar
 		h->patch = (unsigned int)hook_thumb;
 		h->orig = addr;	
 		h->jumpt[1] = 0xb4;
-		h->jumpt[0] = 0x30; // push {r4,r5}
+		h->jumpt[0] = 0x60; // push {r5,r6}
 		h->jumpt[3] = 0xa5;
 		h->jumpt[2] = 0x03; // add r5, pc, #12
 		h->jumpt[5] = 0x68;
