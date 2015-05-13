@@ -557,12 +557,12 @@ unsigned int sc[] = {
 0xe1a0e00f, //        mov     lr, pc
 0xe59ff038, //        ldr     pc, [pc, #56]   ; 4c <.text+0x4c>
 0xe59fd02c, //        ldr     sp, [pc, #44]   ; 44 <.text+0x44>
-0xe59f0010, //        ldr     r0, [pc, #20]   ; 30 <.text+0x30>
-0xe59f1010, //        ldr     r1, [pc, #20]   ; 34 <.text+0x34>
-0xe59f2010, //        ldr     r2, [pc, #20]   ; 38 <.text+0x38>
-0xe59f3010, //        ldr     r3, [pc, #20]   ; 3c <.text+0x3c>
-0xe59fe010, //        ldr     lr, [pc, #20]   ; 40 <.text+0x40>
-0xe59ff010, //        ldr     pc, [pc, #20]   ; 44 <.text+0x44>
+0xe59f0010, //        ldr     r0, [pc, #16]   ; 30 <.text+0x30>
+0xe59f1010, //        ldr     r1, [pc, #16]   ; 34 <.text+0x34>
+0xe59f2010, //        ldr     r2, [pc, #16]   ; 38 <.text+0x38>
+0xe59f3010, //        ldr     r3, [pc, #16]   ; 3c <.text+0x3c>
+0xe59fe010, //        ldr     lr, [pc, #16]   ; 40 <.text+0x40>
+0xe59ff010, //        ldr     pc, [pc, #16]   ; 44 <.text+0x44>
 0xe1a00000, //        nop                     r0
 0xe1a00000, //        nop                     r1 
 0xe1a00000, //        nop                     r2 
