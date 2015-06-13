@@ -661,7 +661,7 @@ int main(int argc, char *argv[])
 			exit(1);
 		}
 		if (debug)
-			printf("mprotect: 0x%x\n", mprotectaddr);
+			printf("mprotect: 0x%lx\n", mprotectaddr);
 	}
 
 	void *ldl = dlopen("libdl.so", RTLD_LAZY);
@@ -679,7 +679,7 @@ int main(int argc, char *argv[])
 	//printf("tgt dlopen : %x\n", lkaddr2 + (dlopenaddr - lkaddr));
 	dlopenaddr = lkaddr2 + (dlopenaddr - lkaddr);
 	if (debug)
-		printf("dlopen: 0x%x\n", dlopenaddr);
+		printf("dlopen: 0x%lx\n", dlopenaddr);
 
 	// Attach 
 	if (0 > ptrace(PTRACE_ATTACH, pid, 0, 0)) {
@@ -812,9 +812,9 @@ int main(int argc, char *argv[])
 	sc[19] = dlopenaddr;
 		
 	if (debug) {
-		printf("pc=%x lr=%x sp=%x fp=%x\n", regs.ARM_pc, regs.ARM_lr, regs.ARM_sp, regs.ARM_fp);
-		printf("r0=%x r1=%x\n", regs.ARM_r0, regs.ARM_r1);
-		printf("r2=%x r3=%x\n", regs.ARM_r2, regs.ARM_r3);
+		printf("pc=%lx lr=%lx sp=%lx fp=%lx\n", regs.ARM_pc, regs.ARM_lr, regs.ARM_sp, regs.ARM_fp);
+		printf("r0=%lx r1=%lx\n", regs.ARM_r0, regs.ARM_r1);
+		printf("r2=%lx r3=%lx\n", regs.ARM_r2, regs.ARM_r3);
 	}
 
 	// push library name to stack
@@ -845,7 +845,7 @@ int main(int argc, char *argv[])
 	}
 	
 	if (debug)
-		printf("executing injection code at 0x%x\n", codeaddr);
+		printf("executing injection code at 0x%lx\n", codeaddr);
 
 	// calc stack pointer
 	regs.ARM_sp = regs.ARM_sp - n*4 - sizeof(sc);
