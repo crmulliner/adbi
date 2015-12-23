@@ -49,7 +49,7 @@ static int counter;
 // arm version of hook
 extern int my_epoll_wait_arm(int epfd, struct epoll_event *events, int maxevents, int timeout);
 
-/*  
+/*
  *  log function to pass to the hooking library to implement central loggin
  *
  *  see: set_logfunction() in base.h
@@ -73,7 +73,7 @@ int my_epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeo
 		if (!counter)
 			log("removing hook for epoll_wait()\n");
 	}
-        
+
 	return res;
 }
 
@@ -82,7 +82,7 @@ void my_init(void)
 	counter = 3;
 
 	log("%s started\n", __FILE__)
- 
+
 	set_logfunction(my_log);
 
 	hook(&eph, getpid(), "libc.", "epoll_wait", my_epoll_wait_arm, my_epoll_wait);

@@ -6,9 +6,9 @@
  * (c) Collin Mulliner <collin[at]mulliner.org>
  *
  * License: LGPL v2.1
- *  
+ *
  * Termios code taken from glibc with slight modifications for this project
- * 
+ *
  */
 #define _XOPEN_SOURCE 500
 #include <stdio.h>
@@ -23,7 +23,7 @@
 #include <dlfcn.h>
 #include <elf.h>
 #include <unistd.h>
-#include <errno.h>       
+#include <errno.h>
 #include <sys/mman.h>
 #include <termios.h>
 #include <sys/ioctl.h>
@@ -77,7 +77,7 @@ static struct symlist* get_syms(int fd, Elf32_Shdr *symh, Elf32_Shdr *strh)
 	sl->sym = NULL;
 
 	/* sanity */
-	if (symh->sh_size % sizeof(Elf32_Sym)) { 
+	if (symh->sh_size % sizeof(Elf32_Sym)) {
 		//printf("elf_error\n");
 		goto out;
 	}
@@ -123,7 +123,7 @@ static int do_load(int fd, symtab_t symtab)
 	char *shstrtab = NULL;
 	int i;
 	int ret = -1;
-	
+
 	/* elf header */
 	rv = read(fd, &ehdr, sizeof(ehdr));
 	if (0 > rv) {
@@ -155,7 +155,7 @@ static int do_load(int fd, symtab_t symtab)
 		log("elf error 3 %d %d\n", rv, size)
 		goto out;
 	}
-	
+
 	/* section header string table */
 	size = shdr[ehdr.e_shstrndx].sh_size;
 	shstrtab = (char *) xmalloc(size);
@@ -361,7 +361,7 @@ static int find_libname(char *libn, char *name, int len, unsigned long *start, s
 	strncpy(name, m->name, len);
 	if (strlen(m->name) >= len)
 		name[len-1] = '\0';
-		
+
 	mprotect((void*)m->start, m->end - m->start, PROT_READ|PROT_WRITE|PROT_EXEC);
 	return 0;
 }
@@ -486,7 +486,7 @@ int tcsetattr (int fd, int optional_actions, const struct termios *termios_p)
 	    struct __kernel_termios k_termios;
 	    unsigned long int cmd;
 	    int retval;
-	
+
 	    switch (optional_actions)
 	    {
 	    case TCSANOW:
@@ -502,7 +502,7 @@ int tcsetattr (int fd, int optional_actions, const struct termios *termios_p)
 	        //__set_errno (EINVAL);
 	        return -1;
 	    }
-	
+
 	    k_termios.c_iflag = termios_p->c_iflag & ~IBAUD0;
 	    k_termios.c_oflag = termios_p->c_oflag;
 	    k_termios.c_cflag = termios_p->c_cflag;
@@ -516,9 +516,9 @@ int tcsetattr (int fd, int optional_actions, const struct termios *termios_p)
 	#endif
 	    memcpy (&k_termios.c_cc[0], &termios_p->c_cc[0],
 	        __KERNEL_NCCS * sizeof (cc_t));
-	
+
 	    retval = ioctl (fd, cmd, &k_termios);
-	
+
 	    if (retval == 0 && cmd == TCSETS)
 	    {
 	    /* The Linux kernel has a bug which silently ignore the invalid
@@ -545,7 +545,7 @@ int tcsetattr (int fd, int optional_actions, const struct termios *termios_p)
 	        retval = -1;
 	    }
 	    }
-	
+
 	    return retval;
 }
 
@@ -553,7 +553,7 @@ int tcgetattr (int fd, struct termios *termios_p)
 	{
 	    struct __kernel_termios k_termios;
 	    int retval;
-	
+
 	    retval = ioctl (fd, TCGETS, &k_termios);
 	    if(retval == 0) {
 	        termios_p->c_iflag = k_termios.c_iflag;
@@ -567,8 +567,8 @@ int tcgetattr (int fd, struct termios *termios_p)
 	#ifdef _HAVE_C_OSPEED
 	        termios_p->c_ospeed = k_termios.c_ospeed;
 	#endif
-	
-	
+
+
 	        if (sizeof (cc_t) == 1 || _POSIX_VDISABLE == 0
 	            || (unsigned char) _POSIX_VDISABLE == (unsigned char) -1)
 	        {
@@ -580,18 +580,18 @@ int tcgetattr (int fd, struct termios *termios_p)
 	        memset ( (memcpy (&termios_p->c_cc[0], &k_termios.c_cc[0],
 	                __KERNEL_NCCS * sizeof (cc_t)) + (__KERNEL_NCCS * sizeof (cc_t))) ,
 	            _POSIX_VDISABLE, (NCCS - __KERNEL_NCCS) * sizeof (cc_t));
-	
+
 	        } else {
 	        size_t cnt;
-	
+
 	        memcpy (&termios_p->c_cc[0], &k_termios.c_cc[0],
 	            __KERNEL_NCCS * sizeof (cc_t));
-	
+
 	        for (cnt = __KERNEL_NCCS; cnt < NCCS; ++cnt)
 	            termios_p->c_cc[cnt] = _POSIX_VDISABLE;
 	        }
 	    }
-	
+
 	    return retval;
 	}
 #endif

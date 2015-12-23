@@ -1,4 +1,4 @@
-/* 
+/*
  * hijack.c - force a process to load a library
  *
  *  ARM / Android version by:
@@ -13,7 +13,7 @@
  *  License: LGPL 2.1
  *
  */
- 
+
 #define _XOPEN_SOURCE 500  /* include pread,pwrite */
 #define _GNU_SOURCE
 #include <stdio.h>
@@ -28,7 +28,7 @@
 #include <dlfcn.h>
 #include <elf.h>
 #include <unistd.h>
-#include <errno.h>       
+#include <errno.h>
 #include <sys/mman.h>
 
 int debug = 0;
@@ -56,7 +56,7 @@ struct symtab {
 	struct symlist *dyn;   /* dynamic symbols */
 };
 
-static void * 
+static void *
 xmalloc(size_t size)
 {
 	void *p;
@@ -80,7 +80,7 @@ get_syms(int fd, Elf32_Shdr *symh, Elf32_Shdr *strh)
 	sl->sym = NULL;
 
 	/* sanity */
-	if (symh->sh_size % sizeof(Elf32_Sym)) { 
+	if (symh->sh_size % sizeof(Elf32_Sym)) {
 		printf("elf_error\n");
 		goto out;
 	}
@@ -127,7 +127,7 @@ do_load(int fd, symtab_t symtab)
 	char *shstrtab = NULL;
 	int i;
 	int ret = -1;
-	
+
 	/* elf header */
 	rv = read(fd, &ehdr, sizeof(ehdr));
 	if (0 > rv) {
@@ -159,7 +159,7 @@ do_load(int fd, symtab_t symtab)
 		printf("elf error");
 		goto out;
 	}
-	
+
 	/* section header string table */
 	size = shdr[ehdr.e_shstrndx].sh_size;
 	shstrtab = (char *) xmalloc(size);
@@ -499,9 +499,9 @@ static int find_linker(pid_t pid, unsigned long *addr)
 		printf("cannot find libc\n");
 		return -1;
 	}
-	
+
 	*addr = libcaddr;
-	
+
 	return 1;
 }
 
@@ -564,10 +564,10 @@ unsigned int sc[] = {
 0xe59fe010, //        ldr     lr, [pc, #16]   ; 40 <.text+0x40>
 0xe59ff010, //        ldr     pc, [pc, #16]   ; 44 <.text+0x44>
 0xe1a00000, //        nop                     r0
-0xe1a00000, //        nop                     r1 
-0xe1a00000, //        nop                     r2 
-0xe1a00000, //        nop                     r3 
-0xe1a00000, //        nop                     lr 
+0xe1a00000, //        nop                     r1
+0xe1a00000, //        nop                     r2
+0xe1a00000, //        nop                     r3
+0xe1a00000, //        nop                     lr
 0xe1a00000, //        nop                     pc
 0xe1a00000, //        nop                     sp
 0xe1a00000, //        nop                     addr of libname
@@ -611,7 +611,7 @@ int main(int argc, char *argv[])
 	char *arg;
 	int opt;
 	char *appname = 0;
- 
+
  	while ((opt = getopt(argc, argv, "p:l:dzms:Z:D:")) != -1) {
 		switch (opt) {
 			case 'p':
@@ -681,14 +681,14 @@ int main(int argc, char *argv[])
 	if (debug)
 		printf("dlopen: 0x%lx\n", dlopenaddr);
 
-	// Attach 
+	// Attach
 	if (0 > ptrace(PTRACE_ATTACH, pid, 0, 0)) {
 		printf("cannot attach to %d, error!\n", pid);
 		exit(1);
 	}
 	waitpid(pid, NULL, 0);
-	
-	if (appname) {	
+
+	if (appname) {
 		if (ptrace(PTRACE_SETOPTIONS, pid, (void*)1, (void*)(PTRACE_O_TRACEFORK))) {
 			printf("FATAL ERROR: ptrace(PTRACE_SETOPTIONS, ...)");
 			return -1;
@@ -740,7 +740,7 @@ int main(int argc, char *argv[])
 					if (debug)
 						printf("PID=%d  child=%d\n", t, child_pid);
 					t = child_pid;
-					
+
 					if (debug > 1)
 						printf("continue parent (zygote) PID=%d\n", b);
 					ptrace(PTRACE_CONT, b, (void*)1, 0);
@@ -761,7 +761,7 @@ int main(int argc, char *argv[])
 				printf("/");
 			waitpid(pid, NULL, 0);
 
-			ptrace(PTRACE_GETREGS, pid, 0, &regs);	
+			ptrace(PTRACE_GETREGS, pid, 0, &regs);
 			if (regs.ARM_ip != 0) {
 				if (debug > 1)
 					printf("not a syscall entry, wait for entry\n");
@@ -792,7 +792,7 @@ int main(int argc, char *argv[])
 	ptrace(PTRACE_GETREGS, pid, 0, &regs);
 
 
-	// setup variables of the loading and fixup code	
+	// setup variables of the loading and fixup code
 	/*
 	sc[9] = regs.ARM_r0;
 	sc[10] = regs.ARM_r1;
@@ -801,7 +801,7 @@ int main(int argc, char *argv[])
 	sc[13] = regs.ARM_sp;
 	sc[15] = dlopenaddr;
 	*/
-	
+
 	sc[11] = regs.ARM_r0;
 	sc[12] = regs.ARM_r1;
 	sc[13] = regs.ARM_r2;
@@ -810,7 +810,7 @@ int main(int argc, char *argv[])
 	sc[16] = regs.ARM_pc;
 	sc[17] = regs.ARM_sp;
 	sc[19] = dlopenaddr;
-		
+
 	if (debug) {
 		printf("pc=%lx lr=%lx sp=%lx fp=%lx\n", regs.ARM_pc, regs.ARM_lr, regs.ARM_sp, regs.ARM_fp);
 		printf("r0=%lx r1=%lx\n", regs.ARM_r0, regs.ARM_r1);
@@ -819,7 +819,7 @@ int main(int argc, char *argv[])
 
 	// push library name to stack
 	libaddr = regs.ARM_sp - n*4 - sizeof(sc);
-	sc[18] = libaddr;	
+	sc[18] = libaddr;
 	//sc[14] = libaddr;
 	//printf("libaddr: %x\n", libaddr);
 
@@ -830,20 +830,20 @@ int main(int argc, char *argv[])
 	}
 	if (debug)
 		printf("stack: 0x%x-0x%x leng = %d\n", stack_start, stack_end, stack_end-stack_start);
-	
+
 	// write library name to stack
 	if (0 > write_mem(pid, (unsigned long*)arg, n, libaddr)) {
 		printf("cannot write library name (%s) to stack, error!\n", arg);
 		exit(1);
 	}
-	
+
 	// write code to stack
 	codeaddr = regs.ARM_sp - sizeof(sc);
 	if (0 > write_mem(pid, (unsigned long*)&sc, sizeof(sc)/sizeof(long), codeaddr)) {
 		printf("cannot write code, error!\n");
 		exit(1);
 	}
-	
+
 	if (debug)
 		printf("executing injection code at 0x%lx\n", codeaddr);
 
@@ -868,13 +868,13 @@ int main(int argc, char *argv[])
 	else {
 		regs.ARM_pc = codeaddr; // just execute the 'shellcode'
 	}
-	
+
 	// detach and continue
 	ptrace(PTRACE_SETREGS, pid, 0, &regs);
 	ptrace(PTRACE_DETACH, pid, 0, (void *)SIGCONT);
 
 	if (debug)
 		printf("library injection completed!\n");
-	
+
 	return 0;
 }
