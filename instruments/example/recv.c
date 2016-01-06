@@ -50,8 +50,7 @@ static struct hook_t eph;
 static int counter;
 
 // arm version of hook
-extern int my_epoll_wait_arm(int epfd, struct epoll_event *events,
-                             int maxevents, int timeout);
+extern ssize_t my_recv_arm(int socket, void *buffer, size_t length, int flags);
 
 /*
  *  log function to pass to the hooking library to implement central loggin
@@ -60,31 +59,25 @@ extern int my_epoll_wait_arm(int epfd, struct epoll_event *events,
  */
 static void my_log(char *msg) { log("%s", msg) }
 
-int my_epoll_wait(int epfd, struct epoll_event *events, int maxevents,
-                  int timeout) {
-  int (*orig_epoll_wait)(int epfd, struct epoll_event *events, int maxevents,
-                         int timeout);
-  orig_epoll_wait = (void *)eph.orig;
-
+ssize_t my_recv(int socket, void *buffer, size_t length, int flags) {
+  int (*orig_recv)(int socket, void *buffer, size_t length, int flags);
+  orig_recv = (void *)eph.orig;
   hook_precall(&eph);
-  int res = orig_epoll_wait(epfd, events, maxevents, timeout);
+  ssize_t res = orig_recv(socket, buffer, length, flags);
   if (counter) {
     hook_postcall(&eph);
-    log("epoll_wait() called\n");
+    log("recv() called\n");
     counter--;
     if (!counter)
-      log("removing hook for epoll_wait()\n");
+      log("removing hook for recv()\n");
   }
-
   return res;
 }
 
 void my_init(void) {
   counter = 3;
 
-  log("%s started\n", __FILE__)
+  log("%s started\n", __FILE__) set_logfunction(my_log);
 
-      set_logfunction(my_log);
-
-  hook(&eph, getpid(), "libc.", "epoll_wait", my_epoll_wait_arm, my_epoll_wait);
+  hook(&eph, getpid(), "libc.", "recv", my_recv_arm, my_recv);
 }

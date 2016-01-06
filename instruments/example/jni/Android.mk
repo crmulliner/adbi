@@ -23,7 +23,7 @@ include $(PREBUILT_STATIC_LIBRARY)
 
 include $(CLEAR_VARS)
 LOCAL_MODULE    := libexample
-LOCAL_SRC_FILES := ../epoll.c  ../epoll_arm.c.arm
+LOCAL_SRC_FILES := ../recv.c  ../recv_arm.c.arm
 LOCAL_CFLAGS := -g
 LOCAL_SHARED_LIBRARIES := dl
 LOCAL_STATIC_LIBRARIES := base
