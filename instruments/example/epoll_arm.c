@@ -12,10 +12,9 @@
 #include <sys/types.h>
 #include <sys/epoll.h>
 
-extern int my_epoll_wait(int epfd, struct epoll_event *events, int maxevents,
-                         int timeout);
+extern int my_epoll_wait(int epfd, struct epoll_event *events, int maxevents, int timeout);
 
-int my_epoll_wait_arm(int epfd, struct epoll_event *events, int maxevents,
-                      int timeout) {
-  return my_epoll_wait(epfd, events, maxevents, timeout);
+int my_epoll_wait_arm(int epfd, struct epoll_event *events, int maxevents, int timeout)
+{
+	return my_epoll_wait(epfd, events, maxevents, timeout);
 }
