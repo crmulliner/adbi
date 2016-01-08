@@ -218,7 +218,6 @@ static int do_load(int fd, symtab_t symtab)
 	}
 
 	/* symbol tables */
-  	symtab->offset = offset;
 	if (dynsymh)
 		symtab->dyn = get_syms(fd, dynsymh, dynstrh);
 	if (symh)
@@ -241,11 +240,10 @@ static symtab_t load_symtab(char *filename)
 	fd = open(filename, O_RDONLY);
 	if (0 > fd) {
 		log("%s open\n", __func__);
-		free(symtab);
 		return NULL;
 	}
 	if (0 > do_load(fd, symtab)) {
-		log("Error ELF parsing %s\n", filename);
+		log("Error ELF parsing %s\n", filename)
 		free(symtab);
 		symtab = NULL;
 	}
@@ -254,46 +252,47 @@ static symtab_t load_symtab(char *filename)
 }
 
 static int load_memmap(pid_t pid, struct mm *mm, int *nmmp) {
-  char *raw; // increase this if needed for larger "maps"
-  char name[MAX_NAME_LEN];
-  char *p;
-  unsigned long start, end;
-  struct mm *m;
-  int nmm = 0;
-  int fd, rv;
-  int i;
-  int sizealloc = 256 * 1024;
-  raw = calloc(1, sizealloc);
-  if (!raw) {
-    log("can't alloc\n");
-    return -1;
-  }
-  sprintf(raw, "/proc/%d/maps", pid);
-  fd = open(raw, O_RDONLY);
-  if (0 > fd) {
-    // printf("Can't open %s for reading\n", raw);
-    free(raw);
-    return -1;
-  }
+  	char *raw;
+	char name[MAX_NAME_LEN];
+	char *p;
+	unsigned long start, end;
+	struct mm *m;
+	int nmm = 0;
+	int fd, rv;
+	int i;
+  	int sizealloc = 256 * 1024;
+  	raw = calloc(1, sizealloc);
+  	if (!raw) {
+    	log("can't alloc\n");
+    	return -1;
+  	}
+	sprintf(raw, "/proc/%d/maps", pid);
+	fd = open(raw, O_RDONLY);
+	if (0 > fd) {
+		//printf("Can't open %s for reading\n", raw);
+    	free(raw);
+		return -1;
+	}
 
-  p = raw;
-  while (1) {
-    rv = read(fd, p, sizealloc - (p - raw));
-    if (0 > rv) {
-      // perror("read");
-      free(raw);
-      return -1;
-    }
-    if (0 == rv)
-      break;
-    p += rv;
-    if (p - raw >= sizealloc) {
-      // printf("Too many memory mapping\n");
-      free(raw);
-      return -1;
-    }
-  }
-  close(fd);
+
+	p = raw;
+	while (1) {
+    	rv = read(fd, p, sizealloc - (p - raw));
+		if (0 > rv) {
+			//perror("read");
+      		free(raw);
+			return -1;
+		}
+		if (0 == rv)
+			break;
+		p += rv;
+    	if (p - raw >= sizealloc) {
+			//printf("Too many memory mapping\n");
+      		free(raw);
+			return -1;
+		}
+	}
+	close(fd);
 
 	p = strtok(raw, "\n");
 	m = mm;

@@ -52,9 +52,9 @@ struct symlist {
 	unsigned num;         /* number of symbols */
 };
 struct symtab {
-  struct symlist *st;  /* "static" symbols */
-  struct symlist *dyn; /* dynamic symbols */
-  unsigned int offset;
+	struct symlist *st;    /* "static" symbols */
+	struct symlist *dyn;   /* dynamic symbols */
+    unsigned int offset;
 };
 
 static void *
@@ -271,38 +271,39 @@ load_memmap(pid_t pid, struct mm *mm, int *nmmp)
 	int fd, rv;
 	int i;
 
-  int sizealloc = 1024 * 256;
-  raw = calloc(1, sizealloc);
-  if (!raw) {
-    printf("cant allocate memory for maps\n");
-    return -1;
-  }
-  sprintf(raw, "/proc/%d/maps", pid);
-  fd = open(raw, O_RDONLY);
-  if (0 > fd) {
-    printf("Can't open %s for reading\n", raw);
-    free(raw);
-    return -1;
-  }
+  	int sizealloc = 1024 * 256;
+  	raw = calloc(1, sizealloc);
+  	if (!raw) {
+    	printf("cant allocate memory for maps\n");
+    	return -1;
+  	}
+	sprintf(raw, "/proc/%d/maps", pid);
+	fd = open(raw, O_RDONLY);
+	if (0 > fd) {
+		printf("Can't open %s for reading\n", raw);
+    	free(raw);
+		return -1;
+	}
 
-  p = raw;
-  while (1) {
-    rv = read(fd, p, sizealloc - (p - raw));
-    if (0 > rv) {
-      perror("read");
-      free(raw);
-      return -1;
-    }
-    if (0 == rv)
-      break;
-    p += rv;
-    if (p - raw >= sizealloc) {
-      printf("Too many memory mapping\n");
-      free(raw);
-      return -1;
-    }
-  }
-  close(fd);
+
+	p = raw;
+	while (1) {
+    	rv = read(fd, p, sizealloc - (p - raw));
+		if (0 > rv) {
+      		perror("read");
+      		free(raw);
+			return -1;
+		}
+		if (0 == rv)
+			break;
+		p += rv;
+    	if (p - raw >= sizealloc) {
+			printf("Too many memory mapping\n");
+      		free(raw);
+			return -1;
+		}
+	}
+	close(fd);
 
 	p = strtok(raw, "\n");
 	m = mm;
@@ -347,9 +348,9 @@ load_memmap(pid_t pid, struct mm *mm, int *nmmp)
 		}
 	}
 
-  *nmmp = nmm;
-  free(raw);
-  return 0;
+	*nmmp = nmm;
+  	free(raw);
+	return 0;
 }
 
 /* Find libc in MM, storing no more than LEN-1 chars of
