@@ -6,9 +6,9 @@
  * (c) Collin Mulliner <collin[at]mulliner.org>
  *
  * License: LGPL v2.1
- *  
+ *
  * Termios code taken from glibc with slight modifications for this project
- * 
+ *
  */
 #define _XOPEN_SOURCE 500
 #include <stdio.h>
@@ -23,7 +23,7 @@
 #include <dlfcn.h>
 #include <elf.h>
 #include <unistd.h>
-#include <errno.h>       
+#include <errno.h>
 #include <sys/mman.h>
 #include <termios.h>
 #include <sys/ioctl.h>
@@ -47,6 +47,7 @@ struct symlist {
 struct symtab {
 	struct symlist *st;    /* "static" symbols */
 	struct symlist *dyn;   /* dynamic symbols */
+  	unsigned int offset;
 };
 
 static void* xmalloc(size_t size)
@@ -77,7 +78,7 @@ static struct symlist* get_syms(int fd, Elf32_Shdr *symh, Elf32_Shdr *strh)
 	sl->sym = NULL;
 
 	/* sanity */
-	if (symh->sh_size % sizeof(Elf32_Sym)) { 
+	if (symh->sh_size % sizeof(Elf32_Sym)) {
 		//printf("elf_error\n");
 		goto out;
 	}
@@ -120,10 +121,11 @@ static int do_load(int fd, symtab_t symtab)
 	Elf32_Shdr *shdr = NULL, *p;
 	Elf32_Shdr *dynsymh, *dynstrh;
 	Elf32_Shdr *symh, *strh;
+  	unsigned int offset = 0;
 	char *shstrtab = NULL;
 	int i;
 	int ret = -1;
-	
+
 	/* elf header */
 	rv = read(fd, &ehdr, sizeof(ehdr));
 	if (0 > rv) {
@@ -155,7 +157,7 @@ static int do_load(int fd, symtab_t symtab)
 		log("elf error 3 %d %d\n", rv, size)
 		goto out;
 	}
-	
+
 	/* section header string table */
 	size = shdr[ehdr.e_shstrndx].sh_size;
 	shstrtab = (char *) xmalloc(size);
@@ -185,6 +187,7 @@ static int do_load(int fd, symtab_t symtab)
 				goto out;
 			}
 			dynsymh = p;
+      		offset = p->sh_addr - p->sh_offset; // this is needed from android6+
 		} else if (SHT_STRTAB == p->sh_type
 			   && !strncmp(shstrtab+p->sh_name, ".strtab", 7)) {
 			if (strh) {
@@ -248,53 +251,36 @@ static symtab_t load_symtab(char *filename)
 	return symtab;
 }
 
-static int load_memmap(pid_t pid, struct mm *mm, int *nmmp)
-{
-	char raw[80000]; // increase this if needed for larger "maps"
+static int load_memmap(pid_t pid, struct mm *mm, int *nmmp) {
 	char name[MAX_NAME_LEN];
 	char *p;
 	unsigned long start, end;
 	struct mm *m;
 	int nmm = 0;
-	int fd, rv;
+	int rv;
 	int i;
+	char line[1024];
+	char* s;
 
-	sprintf(raw, "/proc/%d/maps", pid);
-	fd = open(raw, O_RDONLY);
-	if (0 > fd) {
-		//printf("Can't open %s for reading\n", raw);
+	// read proc/pid/maps line by line
+	FILE* f = NULL;
+	sprintf(line, "/proc/%d/maps", pid);
+	f = fopen(line,"r");
+	if (!f) {
+		printf("Can't open %s for reading\n", line);
 		return -1;
 	}
-
-	/* Zero to ensure data is null terminated */
-	memset(raw, 0, sizeof(raw));
-
-	p = raw;
-	while (1) {
-		rv = read(fd, p, sizeof(raw)-(p-raw));
-		if (0 > rv) {
-			//perror("read");
-			return -1;
-		}
-		if (0 == rv)
-			break;
-		p += rv;
-		if (p-raw >= sizeof(raw)) {
-			//printf("Too many memory mapping\n");
-			return -1;
-		}
-	}
-	close(fd);
-
-	p = strtok(raw, "\n");
 	m = mm;
-	while (p) {
-		/* parse current map line */
+	while (1) {
+    	s = fgets(line,sizeof(line),f);
+		if (!s) {
+			break;
+		}
+
+		// parse line
+		p = strtok(line, "\n");
 		rv = sscanf(p, "%08lx-%08lx %*s %*s %*s %*s %s\n",
-			    &start, &end, name);
-
-		p = strtok(NULL, "\n");
-
+				&start, &end, name);
 		if (rv == 2) {
 			m = &mm[nmm++];
 			m->start = start;
@@ -315,15 +301,17 @@ static int load_memmap(pid_t pid, struct mm *mm, int *nmmp)
 				m->start = start;
 			if (end > m->end)
 				m->end = end;
+				//printf("found name: %s, start:%x, end=%x\n", m->name, m->start, m->end);
 		} else {
 			/* new entry */
 			m = &mm[nmm++];
 			m->start = start;
 			m->end = end;
 			strcpy(m->name, name);
+			//printf("new name: %s, start:%x, end=%x\n", m->name, m->start, m->end);
 		}
 	}
-
+	fclose(f);
 	*nmmp = nmm;
 	return 0;
 }
@@ -361,7 +349,7 @@ static int find_libname(char *libn, char *name, int len, unsigned long *start, s
 	strncpy(name, m->name, len);
 	if (strlen(m->name) >= len)
 		name[len-1] = '\0';
-		
+
 	mprotect((void*)m->start, m->end - m->start, PROT_READ|PROT_WRITE|PROT_EXEC);
 	return 0;
 }
@@ -428,7 +416,7 @@ int find_name(pid_t pid, char *name, char *libn, unsigned long *addr)
 		log("cannot find function: %s\n", name);
 		return -1;
 	}
-	*addr += libcaddr;
+  	*addr += libcaddr - s->offset;
 	return 0;
 }
 
@@ -486,7 +474,7 @@ int tcsetattr (int fd, int optional_actions, const struct termios *termios_p)
 	    struct __kernel_termios k_termios;
 	    unsigned long int cmd;
 	    int retval;
-	
+
 	    switch (optional_actions)
 	    {
 	    case TCSANOW:
@@ -502,7 +490,7 @@ int tcsetattr (int fd, int optional_actions, const struct termios *termios_p)
 	        //__set_errno (EINVAL);
 	        return -1;
 	    }
-	
+
 	    k_termios.c_iflag = termios_p->c_iflag & ~IBAUD0;
 	    k_termios.c_oflag = termios_p->c_oflag;
 	    k_termios.c_cflag = termios_p->c_cflag;
@@ -516,9 +504,9 @@ int tcsetattr (int fd, int optional_actions, const struct termios *termios_p)
 	#endif
 	    memcpy (&k_termios.c_cc[0], &termios_p->c_cc[0],
 	        __KERNEL_NCCS * sizeof (cc_t));
-	
+
 	    retval = ioctl (fd, cmd, &k_termios);
-	
+
 	    if (retval == 0 && cmd == TCSETS)
 	    {
 	    /* The Linux kernel has a bug which silently ignore the invalid
@@ -545,7 +533,7 @@ int tcsetattr (int fd, int optional_actions, const struct termios *termios_p)
 	        retval = -1;
 	    }
 	    }
-	
+
 	    return retval;
 }
 
@@ -553,7 +541,7 @@ int tcgetattr (int fd, struct termios *termios_p)
 	{
 	    struct __kernel_termios k_termios;
 	    int retval;
-	
+
 	    retval = ioctl (fd, TCGETS, &k_termios);
 	    if(retval == 0) {
 	        termios_p->c_iflag = k_termios.c_iflag;
@@ -567,8 +555,8 @@ int tcgetattr (int fd, struct termios *termios_p)
 	#ifdef _HAVE_C_OSPEED
 	        termios_p->c_ospeed = k_termios.c_ospeed;
 	#endif
-	
-	
+
+
 	        if (sizeof (cc_t) == 1 || _POSIX_VDISABLE == 0
 	            || (unsigned char) _POSIX_VDISABLE == (unsigned char) -1)
 	        {
@@ -580,18 +568,18 @@ int tcgetattr (int fd, struct termios *termios_p)
 	        memset ( (memcpy (&termios_p->c_cc[0], &k_termios.c_cc[0],
 	                __KERNEL_NCCS * sizeof (cc_t)) + (__KERNEL_NCCS * sizeof (cc_t))) ,
 	            _POSIX_VDISABLE, (NCCS - __KERNEL_NCCS) * sizeof (cc_t));
-	
+
 	        } else {
 	        size_t cnt;
-	
+
 	        memcpy (&termios_p->c_cc[0], &k_termios.c_cc[0],
 	            __KERNEL_NCCS * sizeof (cc_t));
-	
+
 	        for (cnt = __KERNEL_NCCS; cnt < NCCS; ++cnt)
 	            termios_p->c_cc[cnt] = _POSIX_VDISABLE;
 	        }
 	    }
-	
+
 	    return retval;
 	}
 #endif

@@ -1,4 +1,4 @@
-/* 
+/*
  * hijack.c - force a process to load a library
  *
  *  ARM / Android version by:
@@ -13,7 +13,7 @@
  *  License: LGPL 2.1
  *
  */
- 
+
 #define _XOPEN_SOURCE 500  /* include pread,pwrite */
 #define _GNU_SOURCE
 #include <stdio.h>
@@ -28,7 +28,7 @@
 #include <dlfcn.h>
 #include <elf.h>
 #include <unistd.h>
-#include <errno.h>       
+#include <errno.h>
 #include <sys/mman.h>
 
 int debug = 0;
@@ -54,9 +54,10 @@ struct symlist {
 struct symtab {
 	struct symlist *st;    /* "static" symbols */
 	struct symlist *dyn;   /* dynamic symbols */
+    unsigned int offset;
 };
 
-static void * 
+static void *
 xmalloc(size_t size)
 {
 	void *p;
@@ -80,7 +81,7 @@ get_syms(int fd, Elf32_Shdr *symh, Elf32_Shdr *strh)
 	sl->sym = NULL;
 
 	/* sanity */
-	if (symh->sh_size % sizeof(Elf32_Sym)) { 
+	if (symh->sh_size % sizeof(Elf32_Sym)) {
 		printf("elf_error\n");
 		goto out;
 	}
@@ -127,7 +128,8 @@ do_load(int fd, symtab_t symtab)
 	char *shstrtab = NULL;
 	int i;
 	int ret = -1;
-	
+  	unsigned int offset = 0;
+
 	/* elf header */
 	rv = read(fd, &ehdr, sizeof(ehdr));
 	if (0 > rv) {
@@ -159,7 +161,7 @@ do_load(int fd, symtab_t symtab)
 		printf("elf error");
 		goto out;
 	}
-	
+
 	/* section header string table */
 	size = shdr[ehdr.e_shstrndx].sh_size;
 	shstrtab = (char *) xmalloc(size);
@@ -189,6 +191,7 @@ do_load(int fd, symtab_t symtab)
 				goto out;
 			}
 			dynsymh = p;
+      		offset = p->sh_addr - p->sh_offset; // this is needed from android6+
 		} else if (SHT_STRTAB == p->sh_type
 			   && !strncmp(shstrtab+p->sh_name, ".strtab", 7)) {
 			if (strh) {
@@ -219,6 +222,7 @@ do_load(int fd, symtab_t symtab)
 	}
 
 	/* symbol tables */
+  	symtab->offset = offset;
 	if (dynsymh)
 		symtab->dyn = get_syms(fd, dynsymh, dynstrh);
 	if (symh)
@@ -242,6 +246,7 @@ load_symtab(char *filename)
 	fd = open(filename, O_RDONLY);
 	if (0 > fd) {
 		//perror("open");
+        free(symtab);
 		return NULL;
 	}
 	if (0 > do_load(fd, symtab)) {
@@ -257,51 +262,35 @@ load_symtab(char *filename)
 static int
 load_memmap(pid_t pid, struct mm *mm, int *nmmp)
 {
-	char raw[80000]; // this depends on the number of libraries an executable uses
-	char name[MAX_NAME_LEN];
+  	char name[MAX_NAME_LEN];
 	char *p;
 	unsigned long start, end;
 	struct mm *m;
 	int nmm = 0;
-	int fd, rv;
+	int rv;
 	int i;
+	char line[1024];
+	char* s;
 
-	sprintf(raw, "/proc/%d/maps", pid);
-	fd = open(raw, O_RDONLY);
-	if (0 > fd) {
-		printf("Can't open %s for reading\n", raw);
+	// read proc/pid/maps line by line
+	FILE* f = NULL;
+	sprintf(line, "/proc/%d/maps", pid);
+	f = fopen(line,"r");
+	if (!f) {
+		printf("Can't open %s for reading\n", line);
 		return -1;
 	}
-
-	/* Zero to ensure data is null terminated */
-	memset(raw, 0, sizeof(raw));
-
-	p = raw;
-	while (1) {
-		rv = read(fd, p, sizeof(raw)-(p-raw));
-		if (0 > rv) {
-			//perror("read");
-			return -1;
-		}
-		if (0 == rv)
-			break;
-		p += rv;
-		if (p-raw >= sizeof(raw)) {
-			printf("Too many memory mapping\n");
-			return -1;
-		}
-	}
-	close(fd);
-
-	p = strtok(raw, "\n");
 	m = mm;
-	while (p) {
-		/* parse current map line */
+	while (1) {
+    	s = fgets(line,sizeof(line),f);
+		if (!s) {
+			break;
+		}
+
+		// parse line
+		p = strtok(line, "\n");
 		rv = sscanf(p, "%08lx-%08lx %*s %*s %*s %*s %s\n",
-			    &start, &end, name);
-
-		p = strtok(NULL, "\n");
-
+				&start, &end, name);
 		if (rv == 2) {
 			m = &mm[nmm++];
 			m->start = start;
@@ -309,7 +298,6 @@ load_memmap(pid_t pid, struct mm *mm, int *nmmp)
 			strcpy(m->name, MEMORY_ONLY);
 			continue;
 		}
-
 		if (strstr(name, "stack") != 0) {
 			stack_start = start;
 			stack_end = end;
@@ -335,7 +323,7 @@ load_memmap(pid_t pid, struct mm *mm, int *nmmp)
 			strcpy(m->name, name);
 		}
 	}
-
+	fclose(f);
 	*nmmp = nmm;
 	return 0;
 }
@@ -479,7 +467,7 @@ find_name(pid_t pid, char *name, unsigned long *addr)
 		printf("cannot find %s\n", name);
 		return -1;
 	}
-	*addr += libcaddr;
+  	*addr += libcaddr - s->offset;
 	return 0;
 }
 
@@ -499,9 +487,9 @@ static int find_linker(pid_t pid, unsigned long *addr)
 		printf("cannot find libc\n");
 		return -1;
 	}
-	
+
 	*addr = libcaddr;
-	
+
 	return 1;
 }
 
@@ -564,10 +552,10 @@ unsigned int sc[] = {
 0xe59fe010, //        ldr     lr, [pc, #16]   ; 40 <.text+0x40>
 0xe59ff010, //        ldr     pc, [pc, #16]   ; 44 <.text+0x44>
 0xe1a00000, //        nop                     r0
-0xe1a00000, //        nop                     r1 
-0xe1a00000, //        nop                     r2 
-0xe1a00000, //        nop                     r3 
-0xe1a00000, //        nop                     lr 
+0xe1a00000, //        nop                     r1
+0xe1a00000, //        nop                     r2
+0xe1a00000, //        nop                     r3
+0xe1a00000, //        nop                     lr
 0xe1a00000, //        nop                     pc
 0xe1a00000, //        nop                     sp
 0xe1a00000, //        nop                     addr of libname
@@ -611,7 +599,7 @@ int main(int argc, char *argv[])
 	char *arg;
 	int opt;
 	char *appname = 0;
- 
+
  	while ((opt = getopt(argc, argv, "p:l:dzms:Z:D:")) != -1) {
 		switch (opt) {
 			case 'p':
@@ -681,14 +669,14 @@ int main(int argc, char *argv[])
 	if (debug)
 		printf("dlopen: 0x%lx\n", dlopenaddr);
 
-	// Attach 
+	// Attach
 	if (0 > ptrace(PTRACE_ATTACH, pid, 0, 0)) {
 		printf("cannot attach to %d, error!\n", pid);
 		exit(1);
 	}
 	waitpid(pid, NULL, 0);
-	
-	if (appname) {	
+
+	if (appname) {
 		if (ptrace(PTRACE_SETOPTIONS, pid, (void*)1, (void*)(PTRACE_O_TRACEFORK))) {
 			printf("FATAL ERROR: ptrace(PTRACE_SETOPTIONS, ...)");
 			return -1;
@@ -740,7 +728,7 @@ int main(int argc, char *argv[])
 					if (debug)
 						printf("PID=%d  child=%d\n", t, child_pid);
 					t = child_pid;
-					
+
 					if (debug > 1)
 						printf("continue parent (zygote) PID=%d\n", b);
 					ptrace(PTRACE_CONT, b, (void*)1, 0);
@@ -761,7 +749,7 @@ int main(int argc, char *argv[])
 				printf("/");
 			waitpid(pid, NULL, 0);
 
-			ptrace(PTRACE_GETREGS, pid, 0, &regs);	
+			ptrace(PTRACE_GETREGS, pid, 0, &regs);
 			if (regs.ARM_ip != 0) {
 				if (debug > 1)
 					printf("not a syscall entry, wait for entry\n");
@@ -792,7 +780,7 @@ int main(int argc, char *argv[])
 	ptrace(PTRACE_GETREGS, pid, 0, &regs);
 
 
-	// setup variables of the loading and fixup code	
+	// setup variables of the loading and fixup code
 	/*
 	sc[9] = regs.ARM_r0;
 	sc[10] = regs.ARM_r1;
@@ -801,7 +789,7 @@ int main(int argc, char *argv[])
 	sc[13] = regs.ARM_sp;
 	sc[15] = dlopenaddr;
 	*/
-	
+
 	sc[11] = regs.ARM_r0;
 	sc[12] = regs.ARM_r1;
 	sc[13] = regs.ARM_r2;
@@ -810,7 +798,7 @@ int main(int argc, char *argv[])
 	sc[16] = regs.ARM_pc;
 	sc[17] = regs.ARM_sp;
 	sc[19] = dlopenaddr;
-		
+
 	if (debug) {
 		printf("pc=%lx lr=%lx sp=%lx fp=%lx\n", regs.ARM_pc, regs.ARM_lr, regs.ARM_sp, regs.ARM_fp);
 		printf("r0=%lx r1=%lx\n", regs.ARM_r0, regs.ARM_r1);
@@ -819,7 +807,7 @@ int main(int argc, char *argv[])
 
 	// push library name to stack
 	libaddr = regs.ARM_sp - n*4 - sizeof(sc);
-	sc[18] = libaddr;	
+	sc[18] = libaddr;
 	//sc[14] = libaddr;
 	//printf("libaddr: %x\n", libaddr);
 
@@ -830,20 +818,20 @@ int main(int argc, char *argv[])
 	}
 	if (debug)
 		printf("stack: 0x%x-0x%x leng = %d\n", stack_start, stack_end, stack_end-stack_start);
-	
+
 	// write library name to stack
 	if (0 > write_mem(pid, (unsigned long*)arg, n, libaddr)) {
 		printf("cannot write library name (%s) to stack, error!\n", arg);
 		exit(1);
 	}
-	
+
 	// write code to stack
 	codeaddr = regs.ARM_sp - sizeof(sc);
 	if (0 > write_mem(pid, (unsigned long*)&sc, sizeof(sc)/sizeof(long), codeaddr)) {
 		printf("cannot write code, error!\n");
 		exit(1);
 	}
-	
+
 	if (debug)
 		printf("executing injection code at 0x%lx\n", codeaddr);
 
@@ -868,13 +856,13 @@ int main(int argc, char *argv[])
 	else {
 		regs.ARM_pc = codeaddr; // just execute the 'shellcode'
 	}
-	
+
 	// detach and continue
 	ptrace(PTRACE_SETREGS, pid, 0, &regs);
 	ptrace(PTRACE_DETACH, pid, 0, (void *)SIGCONT);
 
 	if (debug)
 		printf("library injection completed!\n");
-	
+
 	return 0;
 }
