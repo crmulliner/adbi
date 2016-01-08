@@ -262,58 +262,35 @@ load_symtab(char *filename)
 static int
 load_memmap(pid_t pid, struct mm *mm, int *nmmp)
 {
-  	char *raw;
-	char name[MAX_NAME_LEN];
+  	char name[MAX_NAME_LEN];
 	char *p;
 	unsigned long start, end;
 	struct mm *m;
 	int nmm = 0;
-	int fd, rv;
+	int rv;
 	int i;
+	char line[1024];
+	char* s;
 
-  	int sizealloc = 1024 * 256;
-  	raw = calloc(1, sizealloc);
-  	if (!raw) {
-    	printf("cant allocate memory for maps\n");
-    	return -1;
-  	}
-	sprintf(raw, "/proc/%d/maps", pid);
-	fd = open(raw, O_RDONLY);
-	if (0 > fd) {
-		printf("Can't open %s for reading\n", raw);
-    	free(raw);
+	// read proc/pid/maps line by line
+	FILE* f = NULL;
+	sprintf(line, "/proc/%d/maps", pid);
+	f = fopen(line,"r");
+	if (!f) {
+		printf("Can't open %s for reading\n", line);
 		return -1;
 	}
-
-
-	p = raw;
-	while (1) {
-    	rv = read(fd, p, sizealloc - (p - raw));
-		if (0 > rv) {
-      		perror("read");
-      		free(raw);
-			return -1;
-		}
-		if (0 == rv)
-			break;
-		p += rv;
-    	if (p - raw >= sizealloc) {
-			printf("Too many memory mapping\n");
-      		free(raw);
-			return -1;
-		}
-	}
-	close(fd);
-
-	p = strtok(raw, "\n");
 	m = mm;
-	while (p) {
-		/* parse current map line */
+	while (1) {
+    	s = fgets(line,sizeof(line),f);
+		if (!s) {
+			break;
+		}
+
+		// parse line
+		p = strtok(line, "\n");
 		rv = sscanf(p, "%08lx-%08lx %*s %*s %*s %*s %s\n",
-			    &start, &end, name);
-
-		p = strtok(NULL, "\n");
-
+				&start, &end, name);
 		if (rv == 2) {
 			m = &mm[nmm++];
 			m->start = start;
@@ -321,7 +298,6 @@ load_memmap(pid_t pid, struct mm *mm, int *nmmp)
 			strcpy(m->name, MEMORY_ONLY);
 			continue;
 		}
-
 		if (strstr(name, "stack") != 0) {
 			stack_start = start;
 			stack_end = end;
@@ -347,9 +323,8 @@ load_memmap(pid_t pid, struct mm *mm, int *nmmp)
 			strcpy(m->name, name);
 		}
 	}
-
+	fclose(f);
 	*nmmp = nmm;
-  	free(raw);
 	return 0;
 }
 
